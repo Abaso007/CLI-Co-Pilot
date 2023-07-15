@@ -14,8 +14,8 @@ class PromptFile:
     default_config_path = os.path.join(os.path.dirname(__file__), "..", "current_context.config")
 
     def __init__(self, file_name, config):
-        self.context_source_filename = "{}-context.txt".format(config['shell']) #  feel free to set your own default context path here
-        
+        self.context_source_filename = f"{config['shell']}-context.txt"
+
         self.file_path = self.default_file_path
         self.config_path = self.default_config_path
 
@@ -58,21 +58,18 @@ class PromptFile:
         Set the prompt headers with the new config
         """
         self.config = config
-        
+
         with open(self.config_path, 'w') as f:
-            f.write('engine: {}\n'.format(self.config['engine']))
-            f.write('temperature: {}\n'.format(self.config['temperature']))
-            f.write('max_tokens: {}\n'.format(self.config['max_tokens']))
-            f.write('shell: {}\n'.format(self.config['shell']))
-            f.write('multi_turn: {}\n'.format(self.config['multi_turn']))
-            f.write('token_count: {}\n'.format(self.config['token_count']))
+            f.write(f"engine: {self.config['engine']}\n")
+            f.write(f"temperature: {self.config['temperature']}\n")
+            f.write(f"max_tokens: {self.config['max_tokens']}\n")
+            f.write(f"shell: {self.config['shell']}\n")
+            f.write(f"multi_turn: {self.config['multi_turn']}\n")
+            f.write(f"token_count: {self.config['token_count']}\n")
     
     def show_config(self):
         print('\n')
-        # read the dictionary into a list of # lines
-        lines = []
-        for key, value in self.config.items():
-            lines.append('# {}: {}\n'.format(key, value))
+        lines = [f'# {key}: {value}\n' for key, value in self.config.items()]
         print(''.join(lines))
     
     def add_input_output_pair(self, user_query, prompt_response):
@@ -148,12 +145,12 @@ class PromptFile:
             filename = os.path.join(os.path.dirname(__file__), "..", "deleted", filename)
             with Path(filename).open('w') as f:
                 f.writelines(lines)
-        
+
         # delete the prompt file
         with open(self.file_path, 'w') as f:
             f.write('')
-        
-        print("\n#   Context has been cleared, temporarily saved to {}".format(filename))
+
+        print(f"\n#   Context has been cleared, temporarily saved to {filename}")
         self.set_config(config)
     
     def clear_last_interaction(self):
@@ -174,23 +171,23 @@ class PromptFile:
         Save the prompt file to a new location with the config
         """
         if not save_name.endswith('.txt'):
-            save_name = save_name + '.txt'
+            save_name = f'{save_name}.txt'
         save_path = os.path.join(os.path.dirname(__file__), "..", "contexts", save_name)
 
         # first write the config
         with open(self.config_path, 'r') as f:
             lines = f.readlines()
-            lines = ['## ' + line for line in lines]
+            lines = [f'## {line}' for line in lines]
             with Path(save_path).open('w') as f:
                 f.writelines(lines)
-        
+
         # then write the prompt file
         with open(self.file_path, 'r') as f:
             lines = f.readlines()
             with Path(save_path).open('a') as f:
                 f.writelines(lines)
-        
-        print('\n#   Context saved to {}'.format(save_name))
+
+        print(f'\n#   Context saved to {save_name}')
     
     def start_multi_turn(self):
         """
@@ -220,14 +217,14 @@ class PromptFile:
         Loads a context file into current_context
         """
         if not filename.endswith('.txt'):
-            filename = filename + '.txt'
+            filename = f'{filename}.txt'
         filepath = Path(os.path.join(os.path.dirname(__file__), "..", "contexts", filename))
 
         # check if the file exists
         if filepath.exists():
             with filepath.open('r') as f:
                 lines = f.readlines()
-            
+
             # read in the engine name from openaiapirc
             config = configparser.ConfigParser()
             config.read(API_KEYS_LOCATION)
@@ -254,9 +251,9 @@ class PromptFile:
             if initialize == False or self.config['multi_turn'] == "off":
                 with open(self.file_path, 'w') as f:
                     f.writelines(lines)
-                
-                if initialize == False:
-                    print('\n#   Context loaded from {}'.format(filename))
+
+            if initialize == False:
+                print(f'\n#   Context loaded from {filename}')
         else:
             print("\n#   File not found")
             return False

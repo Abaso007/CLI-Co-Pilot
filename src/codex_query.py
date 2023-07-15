@@ -38,7 +38,7 @@ def create_template_ini_file():
     If the ini file does not exist create it and add secret_key
     """
     if not os.path.isfile(API_KEYS_LOCATION):
-        print('# Please create a file at {} and add your secret key'.format(API_KEYS_LOCATION))
+        print(f'# Please create a file at {API_KEYS_LOCATION} and add your secret key')
         print('# The format is:\n')
         print('# [openai]')
         print('# organization_id=<organization-id>')
@@ -80,25 +80,25 @@ def is_sensitive_content(content):
 
     if len(content) == 0:
         return False
-    
+
     response = openai.Completion.create(
         engine="content-filter-alpha",
-        prompt = "<|endoftext|>"+content+"\n--\nLabel:",
+        prompt=f"<|endoftext|>{content}" + "\n--\nLabel:",
         temperature=0,
         max_tokens=1,
         top_p=0,
-        logprobs=10
-        )
-    
-    output_label = response["choices"][0]["text"]
+        logprobs=10,
+    )
 
-    # This is the probability at which we evaluate that a "2" is likely real
-    # vs. should be discarded as a false positive
-    toxic_threshold = -0.355
+    output_label = response["choices"][0]["text"]
 
     if output_label == "2":
         # If the model returns "2", return its confidence in 2 or other output-labels
         logprobs = response["choices"][0]["logprobs"]["top_logprobs"][0]
+
+        # This is the probability at which we evaluate that a "2" is likely real
+        # vs. should be discarded as a false positive
+        toxic_threshold = -0.355
 
         # If the model is not sufficiently confident in "2",
         # choose the most probable of "0" or "1"
@@ -109,19 +109,18 @@ def is_sensitive_content(content):
 
             # If both "0" and "1" have probabilities, set the output label
             # to whichever is most probable
-            if logprob_0 is not None and logprob_1 is not None:
-                if logprob_0 >= logprob_1:
-                    output_label = "0"
-                else:
-                    output_label = "1"
-            # If only one of them is found, set output label to that one
-            elif logprob_0 is not None:
+            if (
+                logprob_0 is not None
+                and logprob_1 is not None
+                and logprob_0 >= logprob_1
+                or (logprob_0 is None or logprob_1 is None)
+                and logprob_0 is not None
+            ):
                 output_label = "0"
-            elif logprob_1 is not None:
+            elif logprob_0 is not None or logprob_1 is not None:
                 output_label = "1"
-
-            # If neither "0" or "1" are available, stick with "2"
-            # by leaving output_label unchanged.
+                    # If neither "0" or "1" are available, stick with "2"
+                    # by leaving output_label unchanged.
 
         # if the most probable token is none of "0", "1", or "2"
         # this should be set as unsafe
@@ -139,10 +138,7 @@ def get_query(prompt_file):
     """
 
     # get input from terminal or stdin
-    if DEBUG_MODE:
-        entry = input("prompt: ") + '\n'
-    else:
-        entry = sys.stdin.read()
+    entry = input("prompt: ") + '\n' if DEBUG_MODE else sys.stdin.read()
     # first we check if the input is a command
     command_result, prompt_file = get_command_result(entry, prompt_file)
 
@@ -163,7 +159,11 @@ def detect_shell():
 
     SHELL = "powershell" if POWERSHELL_MODE else "bash" if BASH_MODE else "zsh" if ZSH_MODE else "unknown"
 
-    shell_prompt_file = Path(os.path.join(os.path.dirname(__file__), "..", "contexts", "{}-context.txt".format(SHELL)))
+    shell_prompt_file = Path(
+        os.path.join(
+            os.path.dirname(__file__), "..", "contexts", f"{SHELL}-context.txt"
+        )
+    )
 
     if shell_prompt_file.is_file():
         PROMPT_CONTEXT = shell_prompt_file
